@@ -98,14 +98,18 @@ class KsMyVoteInfo(object):
   version = '1.3'
   base_url = u'https://myvoteinfo.voteks.org/voterview'
   registrant_search_url = base_url
+  states = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY']
 
   def __init__(self, **kwargs):
+    self.state = 'ks'
+    if 'state' in kwargs:
+      self.state = kwargs['state']
     self.url = self.__class__.registrant_search_url
     if 'url' in kwargs:
       self.url = kwargs['url']
-
+    #print(self.url)
     self.debug = 'debug' in kwargs
-    self.form_url = self.__class__.registrant_search_url + '/registrant/search'
+    self.form_url = self.url + '/registrant/search'
 
   def get_auth_token(self, body):
     startstr = b'<input name="__RequestVerificationToken" type="hidden" value="'
@@ -122,7 +126,7 @@ class KsMyVoteInfo(object):
     search_key = body[start_key_idx:end_key_idx]
     return search_key.decode(encoding='UTF-8')
 
-  def lookup(self, *, first_name, last_name, dob):
+  def lookup(self, *, first_name, last_name, dob, **kwargs):
     if self.debug:
       http_client.HTTPConnection.debuglevel = 1
       logging.basicConfig()
@@ -140,41 +144,89 @@ class KsMyVoteInfo(object):
     form_page_text = form_page.content
     #pprint(form_page_text)
 
-    auth_token = self.get_auth_token(form_page_text)
-    #pprint(auth_token)
-
-    payload = {
-      'FirstName': first_name,
-      'LastName': last_name,
-      'DateOfBirth': date.strftime('%m/%d/%Y'),
-      'DateOfBirth_[month]': date.strftime('%m'),
-      'DateOfBirth_[day]': date.strftime('%d'),
-      'DateOfBirth_[year]': date.strftime('%Y'),
-      '__RequestVerificationToken':auth_token
-    }
-    resp = session.post(self.form_url, data=payload)
-
-    #print(resp.content)
-
-    # if there are multiple/ambiguous results, look for signal string
-    if b'ShowBusyIndicator' in resp.content:
-      search_ids = re.findall(r'data-search-result-id="(\w+)"', str(resp.content))
-      registrants = []
-      for search_id in search_ids:
-        registrant = self.fetch_registrant(session, search_id).parsed()
-        registrants.append(registrant[0])
-
-      return KsMyVoteInfoResult(registrants)
-
-    else:
-      # search result key
-      search_key = self.get_search_key(resp.content)
-      if search_key == "\r":
+    if self.state.upper() != 'KS' and self.state.upper() != 'AR':
+      gender = ''
+      street = ''
+      city = ''
+      state = ''
+      zipcode = ''
+      email = ''
+      if 'gender' in kwargs and 'street' in kwargs and 'city' in kwargs and 'state' in kwargs and 'zipcode' in kwargs and 'email' in kwargs:
+        gender = kwargs['gender']
+        street = kwargs['street']
+        city = kwargs['city']
+        state = kwargs['state']
+        zipcode = kwargs['zipcode']
+        email = kwargs['email']
+      else:
         return False
+      payload = {
+        'cons_first_name': first_name,
+        'cons_last_name': last_name,
+        'cons_gender': gender,
+        'cons_street1': street,
+        'cons_city': city,
+        'cons_state': state,
+        'cons_zip_code': zipcode,
+        'cons_email': email,
+        'birth_date_month': date.strftime('%m'),
+        'birth_date_day': date.strftime('%d'),
+        'birth_date_year': date.strftime('%Y')
+      }
+      resp = session.post(self.form_url, data=payload)
+      #print(resp.content)
+      registrant_page = BeautifulSoup(resp.content, 'html.parser')
+      #print(registrant_page.prettify())
+      if registrant_page.select('#catalist-mperson'):
+        registrant = {}
+        registrant['name'] = registrant_page.select('#catalist-name')[0].get_text()[:-1]
+        registrant['address'] = registrant_page.select('#catalist-regaddrline')[0].get_text()
+        cityStateZip = registrant_page.select('#catalist-regaddrcity')[0].get_text()
+        registrant['city'] = cityStateZip[:-10]
+        registrant['state'] = cityStateZip[-8:-6]
+        registrant['zipcode'] = cityStateZip[-5:]
+        registrant['dob'] = registrant_page.select('#catalist-dob')[0].get_text()[-10:]
+        registrant['status'] = registrant_page.select('#catalist-voterstatus')[0].get_text()[14:]
+        return [registrant]
+      else:
+        return False
+        
+    else:
+      auth_token = self.get_auth_token(form_page_text)
+      #pprint(auth_token)
 
-      #print("search_key:%s" %(search_key))
+      payload = {
+        'FirstName': first_name,
+        'LastName': last_name,
+        'DateOfBirth': date.strftime('%m/%d/%Y'),
+        'DateOfBirth_[month]': date.strftime('%m'),
+        'DateOfBirth_[day]': date.strftime('%d'),
+        'DateOfBirth_[year]': date.strftime('%Y'),
+        '__RequestVerificationToken':auth_token
+      }
+      resp = session.post(self.form_url, data=payload)
 
-      return KsMyVoteInfoResult([self.fetch_registrant(session, search_key)])
+      #print(resp.content)
+
+      # if there are multiple/ambiguous results, look for signal string
+      if b'ShowBusyIndicator' in resp.content:
+        search_ids = re.findall(r'data-search-result-id="(\w+)"', str(resp.content))
+        registrants = []
+        for search_id in search_ids:
+          registrant = self.fetch_registrant(session, search_id).parsed()
+          registrants.append(registrant[0])
+
+        return KsMyVoteInfoResult(registrants)
+
+      else:
+        # search result key
+        search_key = self.get_search_key(resp.content)
+        if search_key == "\r":
+          return False
+
+        #print("search_key:%s" %(search_key))
+
+        return KsMyVoteInfoResult([self.fetch_registrant(session, search_key)])
 
   def fetch_registrant(self, session, search_key):
     # registrant
