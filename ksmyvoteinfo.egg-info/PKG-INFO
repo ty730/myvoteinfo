@@ -1,8 +1,8 @@
 Metadata-Version: 2.1
 Name: ksmyvoteinfo
-Version: 1.3
+Version: 0.1
 Summary: Query the KS SOS site for voter registration
-Home-page: http://github.com/BlueprintKansas/ksmyvoteinfo-py
+Home-page: https://github.com/ty730/myvoteinfo
 Author: Peter Karman
 Author-email: peter@peknet.com
 License: MIT

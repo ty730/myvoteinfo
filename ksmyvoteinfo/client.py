@@ -95,7 +95,7 @@ class KsMyVoteInfoResultParser(object):
 # end result class
 
 class KsMyVoteInfo(object):
-  version = '1.3'
+  version = '0.1'
   base_url = u'https://myvoteinfo.voteks.org/voterview'
   registrant_search_url = base_url
   states = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY']
