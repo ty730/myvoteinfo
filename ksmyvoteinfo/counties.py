@@ -1,4 +1,4 @@
-class KsMyVoteInfoCounties(object):
+class MyVoteInfoCounties(object):
   COUNTY_CODES = {
     "Allen": "308700",
     "Anderson": "308800",

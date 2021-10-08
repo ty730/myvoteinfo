@@ -6,14 +6,14 @@ import requests
 from bs4 import BeautifulSoup
 from pprint import pprint
 
-class KsMyVoteInfoResult(object):
+class MyVoteInfoResult(object):
   def __init__(self, registrants):
     self.registrants = registrants
 
   def parsed(self):
     return self.registrants
 
-class KsMyVoteInfoResultParser(object):
+class MyVoteInfoResultParser(object):
   def __init__(self, registrant_name, registrant_address, registrant_details, ballot_soup=None, district_soup=None, elections_soup=None, polling_soup=None):
     self.registrant_name = registrant_name
     self.registrant_address = registrant_address
@@ -28,8 +28,8 @@ class KsMyVoteInfoResultParser(object):
 
   def parsed(self):
     registrant = {}
-    from ksmyvoteinfo.counties import KsMyVoteInfoCounties
-    counties = KsMyVoteInfoCounties().names()
+    from myvoteinfo.counties import MyVoteInfoCounties
+    counties = MyVoteInfoCounties().names()
 
     for el in self.registrant_details:
       registrant['spans'] = el.find_all('span')
@@ -59,7 +59,7 @@ class KsMyVoteInfoResultParser(object):
       for ballot_link in self.ballot_soup:
         href = ballot_link.get('href')
         text = ballot_link.get_text()
-        registrant['sample_ballots'].append({'href':KsMyVoteInfo.base_url + '/' + href, 'text':text})
+        registrant['sample_ballots'].append({'href':MyVoteInfo.base_url + '/' + href, 'text':text})
 
     if self.district_soup:
       registrant['districts'] = []
@@ -94,7 +94,7 @@ class KsMyVoteInfoResultParser(object):
 
 # end result class
 
-class KsMyVoteInfo(object):
+class MyVoteInfo(object):
   version = '0.1'
   base_url = u'https://myvoteinfo.voteks.org/voterview'
   registrant_search_url = base_url
@@ -216,7 +216,7 @@ class KsMyVoteInfo(object):
           registrant = self.fetch_registrant(session, search_id).parsed()
           registrants.append(registrant[0])
 
-        return KsMyVoteInfoResult(registrants)
+        return MyVoteInfoResult(registrants)
 
       else:
         # search result key
@@ -226,7 +226,7 @@ class KsMyVoteInfo(object):
 
         #print("search_key:%s" %(search_key))
 
-        return KsMyVoteInfoResult([self.fetch_registrant(session, search_key)])
+        return MyVoteInfoResult([self.fetch_registrant(session, search_key)])
 
   def fetch_registrant(self, session, search_key):
     # registrant
@@ -243,7 +243,7 @@ class KsMyVoteInfo(object):
       polling_url = self.url + u'/votingplace/getpollingplaceorvotecenters?KeyPrecinctPart={}&ElectionKey={}'.format(precinct_key, election_key)
       polling_response = session.post(polling_url).content
 
-      return KsMyVoteInfoResultParser(
+      return MyVoteInfoResultParser(
         registrant_page.find('h1'),
         registrant_page.select('#labelResidenceAddress'),
         registrant_page.select('#reg-detail-header-row'),

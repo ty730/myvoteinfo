@@ -1,1 +1,1 @@
-ksmyvoteinfo
+myvoteinfo
