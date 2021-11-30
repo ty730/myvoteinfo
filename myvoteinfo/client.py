@@ -95,15 +95,11 @@ class MyVoteInfoResultParser(object):
 # end result class
 
 class MyVoteInfo(object):
-  version = '0.1'
+  version = '0.2'
   base_url = u'https://myvoteinfo.voteks.org/voterview'
   registrant_search_url = base_url
-  states = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY']
 
   def __init__(self, **kwargs):
-    self.state = 'ks'
-    if 'state' in kwargs:
-      self.state = kwargs['state']
     self.url = self.__class__.registrant_search_url
     if 'url' in kwargs:
       self.url = kwargs['url']
@@ -144,7 +140,7 @@ class MyVoteInfo(object):
     form_page_text = form_page.content
     #pprint(form_page_text)
 
-    if self.state.upper() != 'KS' and self.state.upper() != 'AR':
+    if 'state' in kwargs and kwargs['state'].upper() != 'KS' and kwargs['state'].upper() != 'AR':
       gender = ''
       street = ''
       city = ''
@@ -155,7 +151,7 @@ class MyVoteInfo(object):
         gender = kwargs['gender']
         street = kwargs['street']
         city = kwargs['city']
-        state = kwargs['state']
+        state = kwargs['state'].upper()
         zipcode = kwargs['zipcode']
         email = kwargs['email']
       else:
@@ -177,20 +173,24 @@ class MyVoteInfo(object):
       #print(resp.content)
       registrant_page = BeautifulSoup(resp.content, 'html.parser')
       #print(registrant_page.prettify())
+      registrant = {}
       if registrant_page.select('#catalist-mperson'):
-        registrant = {}
         registrant['name'] = registrant_page.select('#catalist-name')[0].get_text()[:-1]
+      if registrant_page.select('#catalist-regaddrline'):
         registrant['address'] = registrant_page.select('#catalist-regaddrline')[0].get_text()
+      if registrant_page.select('#catalist-regaddrcity'):
         cityStateZip = registrant_page.select('#catalist-regaddrcity')[0].get_text()
         registrant['city'] = cityStateZip[:-10]
         registrant['state'] = cityStateZip[-8:-6]
         registrant['zipcode'] = cityStateZip[-5:]
+      if registrant_page.select('#catalist-dob'):
         registrant['dob'] = registrant_page.select('#catalist-dob')[0].get_text()[-10:]
+      if registrant_page.select('#catalist-voterstatus'):
         registrant['status'] = registrant_page.select('#catalist-voterstatus')[0].get_text()[14:]
+      if registrant:
         return [registrant]
       else:
         return False
-        
     else:
       auth_token = self.get_auth_token(form_page_text)
       #pprint(auth_token)
