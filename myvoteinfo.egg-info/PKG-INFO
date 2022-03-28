@@ -1,7 +1,7 @@
 Metadata-Version: 2.1
 Name: myvoteinfo
-Version: 0.2
-Summary: Query the KS SOS site and Rock the Vote site for voter registration
+Version: 0.3
+Summary: Query the KS SOS site or Rock the Vote site for voter registration
 Home-page: https://github.com/ty730/myvoteinfo
 Author: Tyler Wong
 Author-email: tylerwong2000@gmail.com

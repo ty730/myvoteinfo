@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='myvoteinfo',
-      version='0.2',
+      version='0.3',
       description='Query the KS SOS site or Rock the Vote site for voter registration',
       url='https://github.com/ty730/myvoteinfo',
       author='Tyler Wong',

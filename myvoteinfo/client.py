@@ -95,7 +95,7 @@ class MyVoteInfoResultParser(object):
 # end result class
 
 class MyVoteInfo(object):
-  version = '0.2'
+  version = '0.3'
   base_url = u'https://myvoteinfo.voteks.org/voterview'
   registrant_search_url = base_url
 
@@ -105,7 +105,7 @@ class MyVoteInfo(object):
       self.url = kwargs['url']
     #print(self.url)
     self.debug = 'debug' in kwargs
-    self.form_url = self.url + '/registrant/search'
+    self.form_url = self.url
 
   def get_auth_token(self, body):
     startstr = b'<input name="__RequestVerificationToken" type="hidden" value="'
@@ -157,36 +157,38 @@ class MyVoteInfo(object):
       else:
         return False
       payload = {
-        'cons_first_name': first_name,
-        'cons_last_name': last_name,
-        'cons_gender': gender,
-        'cons_street1': street,
-        'cons_city': city,
-        'cons_state': state,
-        'cons_zip_code': zipcode,
-        'cons_email': email,
-        'birth_date_month': date.strftime('%m'),
-        'birth_date_day': date.strftime('%d'),
-        'birth_date_year': date.strftime('%Y')
+        'catalist_lookup[first]': first_name,
+        'catalist_lookup[last]': last_name,
+        'catalist_lookup[address]': street,
+        'catalist_lookup[city]': city,
+        'catalist_lookup[zip]': zipcode,
+        'catalist_lookup[email]': email,
+        'catalist_lookup[date_of_birth_month]': date.strftime('%m'),
+        'catalist_lookup[date_of_birth_day]': date.strftime('%d'),
+        'catalist_lookup[date_of_birth_year]': date.strftime('%Y')
       }
       resp = session.post(self.form_url, data=payload)
       #print(resp.content)
       registrant_page = BeautifulSoup(resp.content, 'html.parser')
       #print(registrant_page.prettify())
       registrant = {}
-      if registrant_page.select('#catalist-mperson'):
-        registrant['name'] = registrant_page.select('#catalist-name')[0].get_text()[:-1]
-      if registrant_page.select('#catalist-regaddrline'):
-        registrant['address'] = registrant_page.select('#catalist-regaddrline')[0].get_text()
-      if registrant_page.select('#catalist-regaddrcity'):
-        cityStateZip = registrant_page.select('#catalist-regaddrcity')[0].get_text()
-        registrant['city'] = cityStateZip[:-10]
-        registrant['state'] = cityStateZip[-8:-6]
-        registrant['zipcode'] = cityStateZip[-5:]
-      if registrant_page.select('#catalist-dob'):
-        registrant['dob'] = registrant_page.select('#catalist-dob')[0].get_text()[-10:]
-      if registrant_page.select('#catalist-voterstatus'):
-        registrant['status'] = registrant_page.select('#catalist-voterstatus')[0].get_text()[14:]
+      if registrant_page.select('.catalist_match'):
+        match = registrant_page.select('.name')[0].get_text()[:-1].split('\n')
+        registrant['name'] = match[1]
+        registrant['address'] = match[3]
+        registrant['city'] = match[5][:-10]
+        registrant['state'] = match[5][-8:-6]
+        registrant['zipcode'] = match[5][-5:]
+        check = registrant_page.find_all('div', {'class': 'check'})
+        voterInfo = check[1]
+        paragraphs = voterInfo.find_all('p')
+        dobStr = 'Birth Date: '
+        moreInfo = paragraphs[2].getText()
+        if dobStr in moreInfo:
+          registrant['dob'] = moreInfo[(moreInfo.index(dobStr) + len(dobStr)):(moreInfo.index(dobStr) + len(dobStr) + 10)]
+        statusStr = 'Voter Status: '
+        if statusStr in moreInfo:
+          registrant['status'] = moreInfo[(moreInfo.index(statusStr) + len(statusStr)):].strip()
       if registrant:
         return [registrant]
       else:
@@ -204,6 +206,7 @@ class MyVoteInfo(object):
         'DateOfBirth_[year]': date.strftime('%Y'),
         '__RequestVerificationToken':auth_token
       }
+      self.form_url = self.url + '/registrant/search'
       resp = session.post(self.form_url, data=payload)
 
       #print(resp.content)
